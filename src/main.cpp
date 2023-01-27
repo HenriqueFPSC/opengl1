@@ -19,6 +19,10 @@ float mixVal = 0.5f;
 glm::mat4 transform(1);
 Joystick mainJ(0);
 
+unsigned SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
+float x, y, z;
+float fov = 45.0f;
+
 int main() {
     std::cout << "Running!" << std::endl;
 
@@ -38,7 +42,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow *window = glfwCreateWindow(800, 600, "Open GL 1", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Open GL 1", NULL, NULL);
     if (window == NULL) { // Could not create window
         std::cout << "Could not create window." << std::endl;
         glfwTerminate();
@@ -53,7 +57,7 @@ int main() {
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, Keyboard::keyCallback);
@@ -61,30 +65,64 @@ int main() {
     glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
     glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
 
+    glEnable(GL_DEPTH_TEST);
+
+    // ---- Shaders ---- //
     Shader shader("../assets/vertex_core.glsl", "../assets/fragment_core.glsl");
 //    Shader shader2("../assets/vertex_core.glsl", "../assets/fragment_core2.glsl");
 
     ///@formatter:off
     // Vertex Array
     float vertices[] = {
-            //      Positions           Colors              Texture coordinates
-            -0.5f, -0.5f, 0.0f,     1.0f, 1.0f, 0.5f,       0.0f, 0.0f, // Bottom Left
-            -0.5f,  0.5f, 0.0f,     0.5f, 1.0f, 0.75f,      0.0f, 1.0f, // Top Left
-             0.5f, -0.5f, 0.0f,     0.6f, 1.0f, 0.2f,       1.0f, 0.0f, // Bottom Right
-             0.5f,  0.5f, 0.0f,     1.0f, 0.2f, 1.0f,       1.0f, 1.0f, // Top Right
-    };
-    unsigned indices[] = {
-            0, 1, 2, // First Triangle
-            3, 1, 2, // Second Triangle
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
     ///@formatter:on
 
 
     // VAO, VBO & EBO
-    unsigned VAO, VBO, EBO;
+    unsigned VAO, VBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
 
     // Bind VAO
     glBindVertexArray(VAO);
@@ -93,22 +131,14 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Bind EBO
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
     // Set Attribute Pointers
     // Positions
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) nullptr);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) nullptr);
     glEnableVertexAttribArray(0);
 
-    // Colors
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
     // Texture Coordinates
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // ---- Textures ---- //
     unsigned texture1, texture2;
@@ -155,11 +185,6 @@ int main() {
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
-//    glm::mat4 trans(1.0f);
-//    trans = glm::rotate(trans, glm::radians(0.0f), glm::vec3(0, 0, 1));
-//    shader.activate();
-    shader.setMat4("transform", transform);
-
     mainJ.update();
     if (mainJ.isPresent()) {
         std::cout << mainJ.getName() << " is present." << std::endl;
@@ -167,39 +192,44 @@ int main() {
         std::cout << "Joystick is not present." << std::endl;
     }
 
+    x = 0;
+    y = 0;
+    z = 3;
+
     while (!glfwWindowShouldClose(window)) {
         // Process input
         processInput(window);
+
+        // Create Transformation for Screen
+        glm::mat4 model(1);
+        glm::mat4 view(1);
+        glm::mat4 proj(1);
+
+        model = glm::rotate(model, (float) glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
+        view = glm::translate(view, glm::vec3(-x, -y, -z));
+        proj = glm::perspective(glm::radians(fov), (float) SCREEN_WIDTH / (float) SCREEN_HEIGHT, 0.1f, 100.0f);
+
+        // Set Uniform Variables
+        shader.activate();
+        shader.setMat4("model", model);
+        shader.setMat4("view", view);
+        shader.setMat4("projection", proj);
         shader.setFloat("mixVal", mixVal);
 
         // Render
         glClearColor(.2f, .3f, .3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-//        trans = glm::rotate(trans, glm::radians((float) glfwGetTime() / 20.0f), glm::vec3(0, 0, 1));
-        shader.activate();
-        shader.setMat4("transform", transform);
-//
-//        trans2 = glm::rotate(trans2, glm::radians((float) (glfwGetTime() * glfwGetTime()) / -40.0f),
-//                             glm::vec3(0, 0, 1));
-//        shader2.activate();
-//        shader2.setMat4("transform", trans2);
-
         // Draw Shapes
         glBindVertexArray(VAO);
 
-        // First Triangle
-        shader.activate();
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
-        // Second Triangle
-        //shader2.activate();
-        //glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void *) (3 * sizeof(GLuint)));
+        // Cube
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Gets the new window's buffer
         glfwSwapBuffers(window);
@@ -208,7 +238,6 @@ int main() {
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
 
     glfwTerminate();
 
@@ -217,6 +246,8 @@ int main() {
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
+    SCREEN_WIDTH = width;
+    SCREEN_HEIGHT = height;
 }
 
 void processInput(GLFWwindow *window) {
@@ -245,16 +276,23 @@ void processInput(GLFWwindow *window) {
     }
 
 
-    // Translate using WASDs
+    // Change Camara Position using WASDs
     const float wasdChange = 0.02f;
+    const float scrollMultiplier = 0.8f;
     if (Keyboard::key(GLFW_KEY_W))
-        transform = glm::translate(transform, glm::vec3(0, wasdChange, 0));
+        y += wasdChange;
     if (Keyboard::key(GLFW_KEY_S))
-        transform = glm::translate(transform, glm::vec3(0, -wasdChange, 0));
+        y -= wasdChange;
     if (Keyboard::key(GLFW_KEY_A))
-        transform = glm::translate(transform, glm::vec3(-wasdChange, 0, 0));
+        x -= wasdChange;
     if (Keyboard::key(GLFW_KEY_D))
-        transform = glm::translate(transform, glm::vec3(wasdChange, 0, 0));
+        x += wasdChange;
+    if (Keyboard::key(GLFW_KEY_LEFT_SHIFT))
+        z -= wasdChange;
+    if (Keyboard::key(GLFW_KEY_LEFT_CONTROL))
+        z += wasdChange;
+    fov -= (float) Mouse::getScrollDx() * scrollMultiplier;
+
 
     // Translate using Joystick
     mainJ.update();
