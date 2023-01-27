@@ -1,11 +1,11 @@
 
+///@formatter:off
 #ifndef OPENGL1_MOUSE_H
 #define OPENGL1_MOUSE_H
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-///@formatter:off
 class Mouse {
     static double x;
     static double y;

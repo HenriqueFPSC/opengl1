@@ -12,11 +12,11 @@ Shader::Shader(const char *vertexShaderPath, const char *framentShaderPath) {
     glAttachShader(id, vertexShader);
     glAttachShader(id, fragShader);
     glLinkProgram(id);
-
+    
     glGetProgramiv(id, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(id, 512, NULL, infoLog);
-        std::cout << "Error with vertex shader comp.:\n" << infoLog << std::endl;
+        std::cout << "Error with program comp.:\n" << infoLog << std::endl;
     }
 
     glDeleteShader(vertexShader);

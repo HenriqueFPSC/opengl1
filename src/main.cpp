@@ -5,14 +5,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb.cpp>
-#include "Shader.h"
+#include "shader/Shader.h"
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Joystick.h"
+#include "io/Camera.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window, double dt);
 
 float mixVal = 0.5f;
 
@@ -20,8 +21,16 @@ glm::mat4 transform(1);
 Joystick mainJ(0);
 
 unsigned SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
-float x, y, z;
-float fov = 45.0f;
+
+Camera cameras[]{
+        {glm::vec3(0, 0, 3)},
+        {glm::vec3(10, 10, 10)}
+};
+const unsigned camAmount = 2;
+unsigned activeCam = 0;
+
+double deltaTime = 0.0f;
+double lastFrame = 0.0f;
 
 int main() {
     std::cout << "Running!" << std::endl;
@@ -65,11 +74,13 @@ int main() {
     glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
     glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
 
+    // Disable Cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     glEnable(GL_DEPTH_TEST);
 
     // ---- Shaders ---- //
-    Shader shader("../assets/vertex_core.glsl", "../assets/fragment_core.glsl");
-//    Shader shader2("../assets/vertex_core.glsl", "../assets/fragment_core2.glsl");
+    Shader shader("../assets/object.vs.glsl", "../assets/object.fs.glsl");
 
     ///@formatter:off
     // Vertex Array
@@ -192,13 +203,12 @@ int main() {
         std::cout << "Joystick is not present." << std::endl;
     }
 
-    x = 0;
-    y = 0;
-    z = 3;
-
     while (!glfwWindowShouldClose(window)) {
+        double currentTime = glfwGetTime();
+        deltaTime = currentTime - lastFrame;
+        lastFrame = currentTime;
         // Process input
-        processInput(window);
+        processInput(window, deltaTime);
 
         // Create Transformation for Screen
         glm::mat4 model(1);
@@ -206,8 +216,10 @@ int main() {
         glm::mat4 proj(1);
 
         model = glm::rotate(model, (float) glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
-        view = glm::translate(view, glm::vec3(-x, -y, -z));
-        proj = glm::perspective(glm::radians(fov), (float) SCREEN_WIDTH / (float) SCREEN_HEIGHT, 0.1f, 100.0f);
+        // view = glm::translate(view, glm::vec3(-x, -y, -z));
+        view = cameras[activeCam].getViewMatrix();
+        proj = glm::perspective(glm::radians(cameras[activeCam].fov), (float) SCREEN_WIDTH / (float) SCREEN_HEIGHT,
+                                0.1f, 100.0f);
 
         // Set Uniform Variables
         shader.activate();
@@ -250,7 +262,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     SCREEN_HEIGHT = height;
 }
 
-void processInput(GLFWwindow *window) {
+void processInput(GLFWwindow *window, double dt) {
     if (Keyboard::key(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window, true);
     }
@@ -266,58 +278,26 @@ void processInput(GLFWwindow *window) {
         if (mixVal < 0) mixVal = 0.0f;
     }
 
-    // Scale with Arrow Keys
-    const float scaleChange = 0.02f;
-    if (Keyboard::key(GLFW_KEY_UP)) {
-        transform = glm::scale(transform, glm::vec3(1 + scaleChange, 1 + scaleChange, 0));
-    }
-    if (Keyboard::key(GLFW_KEY_DOWN)) {
-        transform = glm::scale(transform, glm::vec3(1 - scaleChange, 1 - scaleChange, 0));
+    if (Keyboard::keyWentDown(GLFW_KEY_TAB)) {
+        activeCam = (activeCam + 1) % camAmount;
     }
 
-
-    // Change Camara Position using WASDs
-    const float wasdChange = 0.02f;
-    const float scrollMultiplier = 0.8f;
+    // Move Camera
     if (Keyboard::key(GLFW_KEY_W))
-        y += wasdChange;
+        cameras[activeCam].updateCameraPosition(CameraDirection::FORWARD, dt);
     if (Keyboard::key(GLFW_KEY_S))
-        y -= wasdChange;
-    if (Keyboard::key(GLFW_KEY_A))
-        x -= wasdChange;
+        cameras[activeCam].updateCameraPosition(CameraDirection::BACKWARD, dt);
     if (Keyboard::key(GLFW_KEY_D))
-        x += wasdChange;
+        cameras[activeCam].updateCameraPosition(CameraDirection::RIGHT, dt);
+    if (Keyboard::key(GLFW_KEY_A))
+        cameras[activeCam].updateCameraPosition(CameraDirection::LEFT, dt);
+    if (Keyboard::key(GLFW_KEY_SPACE))
+        cameras[activeCam].updateCameraPosition(CameraDirection::UP, dt);
     if (Keyboard::key(GLFW_KEY_LEFT_SHIFT))
-        z -= wasdChange;
-    if (Keyboard::key(GLFW_KEY_LEFT_CONTROL))
-        z += wasdChange;
-    fov -= (float) Mouse::getScrollDx() * scrollMultiplier;
+        cameras[activeCam].updateCameraPosition(CameraDirection::DOWN, dt);
 
-
-    // Translate using Joystick
-    mainJ.update();
-    const float mainDeadzone = 0.20f;
-    const float mainMultiplier = 0.02f;
-    float lx = mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_X);
-    float ly = -mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_STICK_Y);
-
-    if (std::abs(lx) > mainDeadzone) {
-        transform = glm::translate(transform, glm::vec3(lx * mainMultiplier, 0, 0));
-    }
-    if (std::abs(ly) > mainDeadzone) {
-        transform = glm::translate(transform, glm::vec3(0, ly * mainMultiplier, 0));
-    }
-
-    // Scale using Joystick
-    const float triggerDeadZone = 0.2;
-    const float triggerMultiplier = 0.02f;
-    // COMMENTED BECAUSE MY CONTROLLER IS BROKEN
-    //float rt = mainJ.axesState(GLFW_JOYSTICK_AXES_RIGHT_TRIGGER);
-    float lt = mainJ.axesState(GLFW_JOYSTICK_AXES_LEFT_TRIGGER);
-    //if (std::abs(rt) > triggerDeadZone) {
-    //    transform = glm::scale(transform, glm::vec3(1 + rt * triggerMultiplier, 1 + rt * triggerMultiplier, 0));
-    //}
-    if (std::abs(lt) > triggerDeadZone) {
-        transform = glm::scale(transform, glm::vec3(1 + lt * triggerMultiplier, 1 + lt * triggerMultiplier, 0));
-    }
+    // Change Camera Direction and FOV
+    const float mouseSens = 0.2f;
+    cameras[activeCam].updateCameraDirection(Mouse::getDx() * mouseSens, Mouse::getDy() * mouseSens);
+    cameras[activeCam].updateCameraFOV(Mouse::getScrollDx());
 }

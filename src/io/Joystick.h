@@ -1,4 +1,5 @@
 
+///@formatter:off
 #ifndef OPENGL1_JOYSTICK_H
 #define OPENGL1_JOYSTICK_H
 
@@ -33,7 +34,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-///@formatter:off
 class Joystick {
     int present;
     int id;
