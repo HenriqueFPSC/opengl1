@@ -1,4 +1,3 @@
-
 ///@formatter:off
 #ifndef OPENGL1_JOYSTICK_H
 #define OPENGL1_JOYSTICK_H

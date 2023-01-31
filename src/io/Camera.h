@@ -1,4 +1,3 @@
-
 ///@formatter:off
 #ifndef OPENGL1_CAMERA_H
 #define OPENGL1_CAMERA_H
@@ -20,7 +19,7 @@ class Camera {
     static const float MIN_FOV;
     static const float MAX_FOV;
     void updateCameraVectors();
-public:
+
     glm::vec3 cameraPos;
 
     glm::vec3 cameraFront;
@@ -35,7 +34,7 @@ public:
     float speed;
     // float sens;
     float fov;
-
+public:
     Camera(glm::vec3 position);
 
     void updateCameraDirection(double dx, double dy);
@@ -43,6 +42,7 @@ public:
     void updateCameraFOV(double dy);
 
     glm::mat4 getViewMatrix() const;
+    float getFOV() const;
 };
 
 

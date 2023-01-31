@@ -1,23 +1,24 @@
-
 ///@formatter:off
 #ifndef OPENGL1_SHADER_H
 #define OPENGL1_SHADER_H
 
-#include "include/glad/glad.h"
+#include <glad/glad.h>
 
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
-#include "include/glm/glm/glm.hpp"
-#include "include/glm/glm/gtc/type_ptr.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 class Shader {
 public:
     unsigned id;
 
-    Shader(const char *vertexShaderPath, const char *framentShaderPath);
+    Shader();
+    Shader(const char *vertexShaderPath, const char *fragmentShaderPath);
+    void generate(const char *vertexShaderPath, const char *fragmentShaderPath);
     void activate();
 
     // Utility Functions

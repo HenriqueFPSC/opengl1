@@ -203,11 +203,11 @@
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2752.htm
 
 //
-// Memory model	N2429	GCC 4.8
+// Memory models	N2429	GCC 4.8
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2429.htm
 
 //
-// Data-dependency ordering: atomics and memory model	N2664	GCC 4.4
+// Data-dependency ordering: atomics and memory models	N2664	GCC 4.4
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2664.htm
 
 //

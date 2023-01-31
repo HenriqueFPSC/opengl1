@@ -76,3 +76,7 @@ void Camera::updateCameraVectors() {
     cameraRight = glm::normalize(glm::cross(cameraFront, worldUp));
     cameraUp = glm::normalize(glm::cross(cameraRight, cameraFront));
 }
+
+float Camera::getFOV() const {
+    return fov;
+}

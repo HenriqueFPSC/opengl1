@@ -4,16 +4,23 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <stb.cpp>
-#include "shader/Shader.h"
+#include <stb/stb_image.h>
+
+#include "graphics/Shader.h"
+#include "graphics/Texture.h"
+#include "graphics/models/Cube.hpp"
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Joystick.h"
 #include "io/Camera.h"
+#include "io/Screen.h"
+
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-void processInput(GLFWwindow *window, double dt);
+void processInput(double dt);
+
+Screen screen;
 
 float mixVal = 0.5f;
 
@@ -51,14 +58,11 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow *window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Open GL 1", NULL, NULL);
-    if (window == NULL) { // Could not create window
+    if (!screen.init()) {
         std::cout << "Could not create window." << std::endl;
         glfwTerminate();
         return -1;
     }
-
-    glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD." << std::endl;
@@ -66,135 +70,13 @@ int main() {
         return -1;
     }
 
-    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, Keyboard::keyCallback);
-    glfwSetCursorPosCallback(window, Mouse::cursorPosCallback);
-    glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
-    glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
-
-    // Disable Cursor
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    glEnable(GL_DEPTH_TEST);
+    screen.setParameteres();
 
     // ---- Shaders ---- //
     Shader shader("../assets/object.vs.glsl", "../assets/object.fs.glsl");
 
-    ///@formatter:off
-    // Vertex Array
-    float vertices[] = {
-            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-            0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-            0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-            0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-    ///@formatter:on
-
-
-    // VAO, VBO & EBO
-    unsigned VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    // Bind VAO
-    glBindVertexArray(VAO);
-
-    // Bind VBO
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Set Attribute Pointers
-    // Positions
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) nullptr);
-    glEnableVertexAttribArray(0);
-
-    // Texture Coordinates
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // ---- Textures ---- //
-    unsigned texture1, texture2;
-    // Texture 1
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    // Load Image
-    int width, height, nChannels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("../assets/img1.jpg", &width, &height, &nChannels, 0);
-
-    if (data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    } else {
-        std::cout << "Failed to load texture." << std::endl;
-    }
-
-    stbi_image_free(data);
-
-    // Texture 2
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-
-    data = stbi_load("../assets/img2.png", &width, &height, &nChannels, 0);
-
-    if (data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    } else {
-        std::cout << "Failed to load texture." << std::endl;
-    }
-
-    stbi_image_free(data);
-
-    shader.activate();
-    shader.setInt("texture1", 0);
-    shader.setInt("texture2", 1);
+    Cube cube(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.75f));
+    cube.init();
 
     mainJ.update();
     if (mainJ.isPresent()) {
@@ -203,56 +85,39 @@ int main() {
         std::cout << "Joystick is not present." << std::endl;
     }
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!screen.shouldClose()) {
+        // Calculate Delta Time
         double currentTime = glfwGetTime();
         deltaTime = currentTime - lastFrame;
         lastFrame = currentTime;
+
         // Process input
-        processInput(window, deltaTime);
+        processInput(deltaTime);
+
+        // Render
+        screen.update();
+
+        shader.activate();
+        shader.setFloat("mixVal", mixVal);
 
         // Create Transformation for Screen
-        glm::mat4 model(1);
         glm::mat4 view(1);
         glm::mat4 proj(1);
 
-        model = glm::rotate(model, (float) glfwGetTime() * glm::radians(-55.0f), glm::vec3(0.5f));
-        // view = glm::translate(view, glm::vec3(-x, -y, -z));
         view = cameras[activeCam].getViewMatrix();
-        proj = glm::perspective(glm::radians(cameras[activeCam].fov), (float) SCREEN_WIDTH / (float) SCREEN_HEIGHT,
+        proj = glm::perspective(glm::radians(cameras[activeCam].getFOV()), (float) SCREEN_WIDTH / (float) SCREEN_HEIGHT,
                                 0.1f, 100.0f);
 
         // Set Uniform Variables
-        shader.activate();
-        shader.setMat4("model", model);
         shader.setMat4("view", view);
         shader.setMat4("projection", proj);
-        shader.setFloat("mixVal", mixVal);
 
-        // Render
-        glClearColor(.2f, .3f, .3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        cube.render(shader);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-
-        // Draw Shapes
-        glBindVertexArray(VAO);
-
-        // Cube
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        // Gets the new window's buffer
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        screen.newFrame();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-
     glfwTerminate();
-
     return 0;
 }
 
@@ -262,9 +127,9 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     SCREEN_HEIGHT = height;
 }
 
-void processInput(GLFWwindow *window, double dt) {
+void processInput(double dt) {
     if (Keyboard::key(GLFW_KEY_ESCAPE)) {
-        glfwSetWindowShouldClose(window, true);
+        screen.setShouldClose(true);
     }
 
     // Change Mix Value with Arrow Keys
