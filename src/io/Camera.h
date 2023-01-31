@@ -20,7 +20,6 @@ class Camera {
     static const float MAX_FOV;
     void updateCameraVectors();
 
-    glm::vec3 cameraPos;
 
     glm::vec3 cameraFront;
     glm::vec3 cameraUp;
@@ -35,6 +34,8 @@ class Camera {
     // float sens;
     float fov;
 public:
+    glm::vec3 cameraPos;
+
     Camera(glm::vec3 position);
 
     void updateCameraDirection(double dx, double dy);

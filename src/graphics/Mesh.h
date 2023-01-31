@@ -13,6 +13,7 @@
 
 struct Vertex {
     glm::vec3 pos;
+    glm::vec3 normal;
     glm::vec2 texCoord;
 
     static std::vector<Vertex> genList(float *vertices, int numberOfVertices);
@@ -32,7 +33,7 @@ public:
 
     Mesh();
 
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned> indices, std::vector<Texture> textures);
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned> indices, std::vector<Texture> textures = {});
 
     void render(Shader shader);
 

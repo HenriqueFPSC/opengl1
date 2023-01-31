@@ -9,6 +9,7 @@
 #include "graphics/Shader.h"
 #include "graphics/Texture.h"
 #include "graphics/models/Cube.hpp"
+#include "graphics/models/Lamp.hpp"
 #include "io/Keyboard.h"
 #include "io/Mouse.h"
 #include "io/Joystick.h"
@@ -16,15 +17,13 @@
 #include "io/Screen.h"
 
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-
 void processInput(double dt);
 
 Screen screen;
 
 float mixVal = 0.5f;
 
-glm::mat4 transform(1);
+// glm::mat4 transform(1);
 Joystick mainJ(0);
 
 unsigned SCREEN_WIDTH = 800, SCREEN_HEIGHT = 600;
@@ -73,10 +72,14 @@ int main() {
     screen.setParameteres();
 
     // ---- Shaders ---- //
-    Shader shader("../assets/object.vs.glsl", "../assets/object.fs.glsl");
+    Shader shader("../assets/object.vs", "../assets/object.fs");
+    Shader lampShader("../assets/object.vs", "../assets/lamp.fs");
 
-    Cube cube(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.75f));
+    Cube cube(Material::mix(Material::gold, Material::emerald), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.75f));
     cube.init();
+
+    Lamp lamp(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-1.0f, -0.5f, -0.5f), glm::vec3(0.25f));
+    lamp.init();
 
     mainJ.update();
     if (mainJ.isPresent()) {
@@ -98,7 +101,12 @@ int main() {
         screen.update();
 
         shader.activate();
-        shader.setFloat("mixVal", mixVal);
+        shader.set3Float("light.position", lamp.pos);
+        shader.set3Float("viewPos", cameras[activeCam].cameraPos);
+
+        shader.set3Float("light.ambient", lamp.ambient);
+        shader.set3Float("light.diffuse", lamp.diffuse);
+        shader.set3Float("light.specular", lamp.specular);
 
         // Create Transformation for Screen
         glm::mat4 view(1);
@@ -114,17 +122,19 @@ int main() {
 
         cube.render(shader);
 
+        lampShader.activate();
+        lampShader.setMat4("view", view);
+        lampShader.setMat4("projection", proj);
+        lamp.render(lampShader);
+
         screen.newFrame();
     }
 
+    cube.cleanup();
+    lamp.cleanup();
+
     glfwTerminate();
     return 0;
-}
-
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-    glViewport(0, 0, width, height);
-    SCREEN_WIDTH = width;
-    SCREEN_HEIGHT = height;
 }
 
 void processInput(double dt) {
